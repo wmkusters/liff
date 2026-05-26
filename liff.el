@@ -23,6 +23,31 @@
 
 (require 'magit)
 
+(defun liff-alternate-lookup (identifier target-project contains-target)
+  (let ((results (lsp-request "workspace/symbol" `(:query
+                                                   ,identifier))))
+    (seq-filter (lambda (sym)
+                  (and
+                   (string= (gethash "name" sym) identifier)
+                   (not (xor contains-target (string-match-p target-project (gethash "uri" (gethash "location" sym)))))))
+                results)))
+
+
+(defun liff-go-to-symbol-other-window (identifier)
+  (message "liff go to symbol called")
+  (with-selected-window
+      (next-window)
+    (lsp-goto-location
+     (gethash "location"
+              (car
+               (liff-alternate-lookup identifier "liff-worktree" (string-match-p "liff-worktree" (buffer-file-name))))))))
+
+(defun liff-lookup (identifier &optional arg)
+  (interactive (list (doom-thing-at-point-or-region)
+                     current-prefix-arg))
+  (+lookup/definition identifier arg)
+  (liff-go-to-symbol-other-window identifier))
+
 (defun liff (branch)
   "Checkout BRANCH as a worktree at PATH."
   (interactive
