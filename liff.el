@@ -28,7 +28,18 @@
   (interactive
    (list
     (magit-read-branch-or-commit "Branch")))
-  (magit-worktree-checkout "./liff-worktree" branch))
+  ;; compute the drop-in cursor position and open buffers
+  ;; TODO handle no shared file existing in both worktrees; show warning buffer
+  (let* ((base-project-path (magit-toplevel))
+         (base-file (car (magit-git-lines "diff" "--name-only" (concat (magit-get-current-branch) ".." branch))))
+         (base-file-path (concat base-project-path base-file)))
+    ;; TODO handle already existing worktree
+    (magit-worktree-checkout (concat base-project-path "liff-worktree") branch)
+    (delete-other-windows)
+    (let ((worktree-file-path (concat base-project-path "liff-worktree/" base-file)))
+      (find-file base-file-path)
+      (find-file-other-window  worktree-file-path)))
+  (magit-worktree-delete (concat "liff-worktree")))
 
 (provide 'liff)
 
